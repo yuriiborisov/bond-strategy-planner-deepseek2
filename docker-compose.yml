@@ -1,0 +1,127 @@
+name: bond-strategy-planner
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bsp-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bondplanner}
+      POSTGRES_USER: ${POSTGRES_USER:-bondplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bondplanner}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bondplanner} -d ${POSTGRES_DB:-bondplanner}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: bsp-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    profiles: ["cache"]
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bsp-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollamadata:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    profiles: ["llm"]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bsp-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bondplanner}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-bondplanner}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-bondplanner}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-PT15M}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-P30D}
+      APP_MOEX_BASE_URL: ${APP_MOEX_BASE_URL:-https://iss.moex.com/iss}
+      APP_SYNC_ENABLED: ${APP_SYNC_ENABLED:-true}
+      APP_TAX_PROFILE: ${APP_TAX_PROFILE:-RU_FLAT_13}
+      APP_RATINGS_SYNC_ENABLED: ${APP_RATINGS_SYNC_ENABLED:-true}
+      APP_LLM_ENABLED: ${APP_LLM_ENABLED:-false}
+      APP_LLM_PROVIDER: ${APP_LLM_PROVIDER:-LMSTUDIO}
+      APP_LLM_BASE_URL: ${APP_LLM_BASE_URL:-}
+      APP_LLM_API_KEY: ${APP_LLM_API_KEY:-}
+      APP_LLM_MODEL: ${APP_LLM_MODEL:-qwen3.5-14b}
+      APP_LLM_DAILY_LIMIT: ${APP_LLM_DAILY_LIMIT:-0}
+      APP_LLM_PRIVACY_MODE: ${APP_LLM_PRIVACY_MODE:-PERCENT_ONLY}
+      APP_SEED_DEMO: ${APP_SEED_DEMO:-true}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: bsp-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: bsp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["tools"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  ollamadata:

@@ -1,0 +1,38 @@
+# build output
+target/
+dist/
+build/
+out/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# node
+node_modules/
+.vite/
+coverage/
+playwright-report/
+test-results/
+
+# env & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# ide
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# logs & data
+*.log
+logs/
+data/
+*.db
+*.mv.db
+*.trace.db
+
+# dsh helper state
+.github-sync/
