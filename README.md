@@ -10,7 +10,7 @@ LLM-слой опционален, выключен по умолчанию и *
 
 > Сервис носит информационный характер и не является индивидуальной инвестиционной рекомендацией.
 
-Полная спецификация — [SPEC.md](SPEC.md).
+Полная спецификация — [SPEC.md](SPEC.md), архитектура и принятые решения — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -49,7 +49,7 @@ LLM-слой опционален, выключен по умолчанию и *
 Требуется JDK 17+ и Node.js 20+.
 
 ```bash
-# backend: H2 (файл в ./backend/data), демо-данные и схема создаются Flyway
+# backend: H2 in-memory (данные пересоздаются при старте), схема Flyway + демо-данные автоматически
 cd backend
 mvn spring-boot:run
 
@@ -64,8 +64,10 @@ npm run dev
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
 
-Демо-пользователь: `admin@local.dev` / `admin12345` (роль ADMIN), создаётся миграцией `V5__demo_data.sql`
-только в dev-профиле. **Смените пароль перед публичным запуском** (или задайте `APP_SEED_DEMO=false`).
+Демо-доступ: `admin@local.dev` / `admin12345` (роль ADMIN) и 24 демо-выпуска MOEX с рейтингами,
+купонными календарями и котировками. Данные создаются `DemoDataSeeder` при `APP_SEED_DEMO=true`
+(по умолчанию). **Смените пароль и отключите демо-данные перед публичным запуском**
+(`APP_SEED_DEMO=false`).
 
 ## Быстрый старт (Docker)
 
@@ -151,9 +153,21 @@ APP_LLM_MODEL=qwen3.5-14b
 ## Тесты
 
 ```bash
-cd backend && mvn test       # unit + интеграционные (H2)
-cd frontend && npm test      # vitest
+cd backend && mvn test       # 46 тестов: unit + интеграционные (H2, MockMvc)
+cd frontend && npm test      # 11 тестов: форматирование, формы, таблица позиций
 ```
+
+UI-дымовая проверка в headless Chromium (backend на `:8085`, Vite на `:5173`):
+
+```bash
+cd frontend
+npx playwright install chromium
+node scripts/ui-check.mjs http://127.0.0.1:5173
+```
+
+Проверка проходит главную, калькулятор, результаты, логин, сохранение портфеля, AI-разбор,
+админку и мобильную вёрстку; падает на любых console/page errors. Скриншоты складываются
+в `frontend/screenshots/` (не коммитятся).
 
 ## Структура
 

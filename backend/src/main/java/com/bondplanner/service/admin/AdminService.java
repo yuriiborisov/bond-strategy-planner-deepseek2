@@ -60,6 +60,7 @@ public class AdminService {
     private final SyncService syncService;
     private final SyncRunRepository syncRunRepository;
     private final ExchangeRepository exchangeRepository;
+    private final com.bondplanner.repository.StrategyRepository strategyRepository;
     private final BondRepository bondRepository;
     private final BondQuoteRepository quoteRepository;
     private final IssuerRepository issuerRepository;
@@ -280,6 +281,17 @@ public class AdminService {
         exchangeRepository.save(exchange);
         return Map.of("id", exchange.getId(), "code", exchange.getCode(),
                 "enabled", exchange.isEnabled(), "isDefault", exchange.isDefaultExchange());
+    }
+
+    @Transactional
+    public Map<String, Object> updateStrategy(String code, Boolean enabled) {
+        var strategy = strategyRepository.findById(code.toUpperCase())
+                .orElseThrow(() -> ApiException.notFound("Стратегия не найдена: " + code));
+        if (enabled != null) {
+            strategy.setEnabled(enabled);
+            strategyRepository.save(strategy);
+        }
+        return Map.of("code", strategy.getCode(), "enabled", strategy.isEnabled());
     }
 
     @Transactional(readOnly = true)

@@ -36,3 +36,6 @@ data/
 
 # dsh helper state
 .github-sync/
+
+# local UI smoke screenshots
+screenshots/

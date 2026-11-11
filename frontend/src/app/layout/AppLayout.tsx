@@ -46,53 +46,61 @@ export function AppLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5 text-white hover:text-white">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-500/15 text-accent-400 ring-1 ring-accent-500/30">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 19V11m5 8V5m5 14v-6m5 6V8" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span>
-              <span className="block text-sm font-semibold leading-tight">{getMessage("appName")}</span>
-              <span className="hidden text-[11px] text-slate-500 sm:block">облигации · стратегии · расчёты</span>
-            </span>
-          </Link>
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex min-w-0 items-center gap-2.5 text-white hover:text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-500/15 text-accent-400 ring-1 ring-accent-500/30">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 19V11m5 8V5m5 14v-6m5 6V8" strokeLinecap="round" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold leading-tight">{getMessage("appName")}</span>
+                <span className="hidden text-[11px] text-slate-500 sm:block">облигации · стратегии · расчёты</span>
+              </span>
+            </Link>
 
-          <nav className="ml-auto flex items-center gap-1" aria-label="Основная навигация">
+            <nav className="ml-auto hidden items-center gap-1 sm:flex" aria-label="Основная навигация">
+              <NavLink to="/">{getMessage("nav.strategies")}</NavLink>
+              {user ? <NavLink to="/portfolios">{getMessage("nav.portfolios")}</NavLink> : null}
+              {isAdmin(user) ? <NavLink to="/admin/sync">{getMessage("nav.admin")}</NavLink> : null}
+            </nav>
+
+            <div className="ml-auto flex items-center gap-2 sm:ml-0 sm:border-l sm:border-white/10 sm:pl-3">
+              {user ? (
+                <>
+                  <span className="hidden max-w-[160px] truncate text-xs text-slate-400 lg:block" title={user.email}>
+                    {user.email}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      logout();
+                      navigate("/");
+                    }}
+                  >
+                    {getMessage("nav.logout")}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/login?next=${encodeURIComponent(location.pathname)}`)}>
+                    {getMessage("nav.login")}
+                  </Button>
+                  <Button variant="secondary" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/register")}>
+                    {getMessage("nav.register")}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <nav className="mt-2 flex items-center gap-1 overflow-x-auto pb-0.5 sm:hidden" aria-label="Мобильная навигация">
             <NavLink to="/">{getMessage("nav.strategies")}</NavLink>
             {user ? <NavLink to="/portfolios">{getMessage("nav.portfolios")}</NavLink> : null}
             {isAdmin(user) ? <NavLink to="/admin/sync">{getMessage("nav.admin")}</NavLink> : null}
           </nav>
-
-          <div className="flex items-center gap-2 border-l border-white/10 pl-3">
-            {user ? (
-              <>
-                <span className="hidden text-xs text-slate-400 sm:block" title={user.email}>
-                  {user.email}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    logout();
-                    navigate("/");
-                  }}
-                >
-                  {getMessage("nav.logout")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate(`/login?next=${encodeURIComponent(location.pathname)}`)}>
-                  {getMessage("nav.login")}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => navigate("/register")}>
-                  {getMessage("nav.register")}
-                </Button>
-              </>
-            )}
-          </div>
         </div>
       </header>
 

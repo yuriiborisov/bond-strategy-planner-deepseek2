@@ -154,9 +154,8 @@ public class CalculationService {
             if (userId == null || !calculation.getUser().getId().equals(userId)) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Нет доступа к расчёту");
             }
-        } else if (sessionId != null && calculation.getAnonymousSessionId() != null
-                && !sessionId.equals(calculation.getAnonymousSessionId())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Нет доступа к расчёту");
+        } else if (sessionId == null || !sessionId.equals(calculation.getAnonymousSessionId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Анонимный расчёт доступен только в своей сессии");
         }
         ObjectNode node = readResult(calculation);
         node.put("calculationId", calculation.getId());

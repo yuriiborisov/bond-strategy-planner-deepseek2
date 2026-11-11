@@ -230,9 +230,9 @@ export function WheelSection({ result }: { result: CalculationResult }) {
               />
               <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value: number | string) => fmtMoney(Number(value))} />
               <Legend wrapperStyle={{ fontSize: 12, color: "#cbd5e1" }} />
-              <Line type="monotone" dataKey="REINVEST" name="С реинвестом" stroke="#2dd4bf" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="CASH_OUT" name="С выводом" stroke="#60a5fa" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="CASH_BUFFER" name="Кэш" stroke="#c084fc" strokeWidth={2} strokeDasharray="5 4" dot={false} />
+              <Line type="monotone" dataKey="REINVEST" name="С реинвестом" stroke="#2dd4bf" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="CASH_OUT" name="С выводом" stroke="#60a5fa" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="CASH_BUFFER" name="Кэш" stroke="#c084fc" strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>

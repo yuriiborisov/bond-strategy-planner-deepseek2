@@ -15,6 +15,8 @@ import com.bondplanner.repository.ExchangeRepository;
 import com.bondplanner.repository.IssuerFactorRepository;
 import com.bondplanner.repository.IssuerRepository;
 import com.bondplanner.service.calc.BondMetricsService;
+import com.bondplanner.service.checks.AssetCheckService;
+import com.bondplanner.service.checks.AssetCheckView;
 import com.bondplanner.service.calc.FilterParams;
 import com.bondplanner.service.calc.Params;
 import com.bondplanner.service.rating.RatingService;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,6 +45,7 @@ public class BondService {
     private final IssuerRepository issuerRepository;
     private final ExchangeRepository exchangeRepository;
     private final BondMetricsService metricsService;
+    private final AssetCheckService assetCheckService;
     private final RatingService ratingService;
 
     @Transactional(readOnly = true)
@@ -145,6 +149,13 @@ public class BondService {
                     "effectiveMaturity", metrics.effectiveMaturity()));
         }
         map.put("rating", rating);
+        if (metrics != null) {
+            AssetCheckService.CheckContext checkContext = new AssetCheckService.CheckContext(
+                    defaultFilters(), "BOND_CARD", LocalDate.now(), null, 45, null, null,
+                    null, BigDecimal.valueOf(70), Instant.now(), List.of());
+            AssetCheckView checks = assetCheckService.check(candidate, metrics, rating, checkContext);
+            map.put("checks", checks);
+        }
         map.put("cashflows", cashflows.stream().map(flow -> Map.of(
                 "date", flow.getFlowDate(),
                 "type", flow.getFlowType().name(),

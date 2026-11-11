@@ -70,7 +70,7 @@ function FragmentRow({
   return (
     <>
       <tr>
-        <td className="text-slate-500">{position.rungIndex ?? index + 1}</td>
+        <td className="text-slate-500">{position.rungIndex != null ? position.rungIndex + 1 : index + 1}</td>
         <td>
           <div className="font-medium text-white">{bond.name ?? bond.secid}</div>
           <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">

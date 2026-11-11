@@ -8,7 +8,7 @@ import {
   Badge,
   Button,
   Card,
-  Disclaimer,
+
   ErrorState,
   Field,
   LoadingBlock,
@@ -189,7 +189,7 @@ export function PortfolioDetailPage() {
         <AiSection kind="portfolio" portfolioId={portfolioId} />
       </SectionCard>
 
-      <Disclaimer />
+
 
       <Modal
         open={renameOpen}

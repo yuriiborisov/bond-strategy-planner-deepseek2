@@ -87,6 +87,11 @@ public class AdminController {
         return adminService.updateExchange(id, request.enabled(), request.isDefault());
     }
 
+    @PatchMapping("/strategies/{code}")
+    public Map<String, Object> updateStrategy(@PathVariable String code, @RequestBody StrategyPatch request) {
+        return adminService.updateStrategy(code, request.enabled());
+    }
+
     @GetMapping("/ai/analyses")
     public Map<String, Object> aiAnalyses(@RequestParam(required = false) String status,
                                           @RequestParam(defaultValue = "0") int page,
@@ -112,5 +117,8 @@ public class AdminController {
     }
 
     public record AiConfigPatch(Boolean enabled, Integer dailyLimit) {
+    }
+
+    public record StrategyPatch(Boolean enabled) {
     }
 }

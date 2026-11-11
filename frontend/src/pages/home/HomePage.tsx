@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../../shared/api/endpoints";
 import type { StrategyDto } from "../../shared/api/types";
 import { riskClass, riskLabel } from "../../shared/lib/format";
-import { Badge, Card, Disclaimer, ErrorState, RiskDots, SectionCard } from "../../shared/ui";
+import { Badge, Card, ErrorState, RiskDots, SectionCard } from "../../shared/ui";
 
 export function HomePage() {
   const strategies = useQuery({ queryKey: ["strategies"], queryFn: api.strategies });
@@ -156,7 +156,7 @@ export function HomePage() {
         </Card>
       </div>
 
-      <Disclaimer />
+
     </div>
   );
 }

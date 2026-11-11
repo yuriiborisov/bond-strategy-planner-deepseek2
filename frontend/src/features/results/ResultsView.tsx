@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { CalculationResult } from "../../shared/api/types";
 import { fmtDate, fmtDateTime, freshnessClass, freshnessLabel, strategyLabel } from "../../shared/lib/format";
-import { Badge, Button, Card, Disclaimer, SectionCard } from "../../shared/ui";
+import { Badge, Button, Card, SectionCard } from "../../shared/ui";
 import { SavePortfolioDialog } from "../save-portfolio/SavePortfolioDialog";
 import { AiSection } from "../ai/AiSection";
 import { AllocationChart, CashFlowChart } from "./Charts";
@@ -134,7 +134,7 @@ export function ResultsView({ result, onRecalculate }: { result: CalculationResu
               <div key={key} className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
                 <dt className="text-xs text-slate-500">{assumptionLabel(key)}</dt>
                 <dd className="mt-0.5 break-words text-slate-200">
-                  {value === null || value === undefined ? "—" : String(value)}
+                  {formatAssumption(key, value)}
                 </dd>
               </div>
             ))}
@@ -168,7 +168,7 @@ export function ResultsView({ result, onRecalculate }: { result: CalculationResu
         </p>
         <Badge tone="neutral">не является инвестиционной рекомендацией</Badge>
       </div>
-      <Disclaimer />
+
 
       <SavePortfolioDialog
         open={saveOpen}
@@ -182,6 +182,13 @@ export function ResultsView({ result, onRecalculate }: { result: CalculationResu
       />
     </div>
   );
+}
+
+function formatAssumption(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "boolean") return value ? "да" : "нет";
+  if (typeof value === "number" && /Pct|Share/i.test(key)) return `${value.toFixed(2).replace(".", ",")}%`;
+  return String(value);
 }
 
 function assumptionLabel(key: string): string {

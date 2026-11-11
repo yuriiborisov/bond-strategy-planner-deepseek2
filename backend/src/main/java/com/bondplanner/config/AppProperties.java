@@ -21,7 +21,7 @@ public class AppProperties {
     private boolean assetChecksEnabled = true;
     private boolean seedDemo = true;
     private int calcMaxBonds = 5000;
-    private List<String> corsAllowedOrigins = new ArrayList<>(List.of("http://localhost:5173", "http://localhost:3000"));
+    private List<String> corsAllowedOrigins = new ArrayList<>(List.of("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"));
 
     private Jwt jwt = new Jwt();
     private Llm llm = new Llm();

@@ -67,9 +67,9 @@ export function CashFlowChart({ points }: { points: CashFlowPoint[] }) {
             cursor={{ fill: "rgba(255,255,255,0.04)" }}
           />
           <Legend wrapperStyle={{ fontSize: 12, color: "#cbd5e1" }} />
-          <Bar dataKey="coupon" name="Купоны" stackId="income" fill="#2dd4bf" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="maturity" name="Погашения" stackId="income" fill="#60a5fa" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="tax" name="НДФЛ" fill="#fb7185" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="coupon" name="Купоны" stackId="income" fill="#2dd4bf" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="maturity" name="Погашения" stackId="income" fill="#60a5fa" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+          <Bar dataKey="tax" name="НДФЛ" fill="#fb7185" radius={[3, 3, 0, 0]} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -99,7 +99,7 @@ export function AllocationChart({ positions }: { positions: Position[] }) {
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={byIssuer} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88} paddingAngle={2}>
+            <Pie data={byIssuer} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88} paddingAngle={2} isAnimationActive={false}>
               {byIssuer.map((entry, index) => (
                 <Cell key={entry.name} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0.2)" />
               ))}

@@ -58,15 +58,19 @@ export function SummaryMetrics({ result }: { result: CalculationResult }) {
     );
   }
 
-  metrics.push(
-    metric("Купоны", fmtMoney(s.totalCouponIncomeRub as number)),
-    metric("Налог с купонов", fmtMoney(s.totalTaxRub as number)),
-    metric("Остаток", fmtMoney(s.cashResidualRub as number)),
-  );
+  if (["BULLET", "BARBELL", "LADDER"].includes(String(result.strategy))) {
+    metrics.push(
+      metric("Купоны", fmtMoney(s.totalCouponIncomeRub as number)),
+      metric("Налог с купонов", fmtMoney(s.totalTaxRub as number)),
+    );
+  }
+  if (["BULLET", "BARBELL"].includes(String(result.strategy))) {
+    metrics.push(metric("Остаток", fmtMoney(s.cashResidualRub as number)));
+  }
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {metrics.slice(0, 8).map((item) => (
+      {metrics.map((item) => (
         <div key={item.label} className="rounded-2xl border border-white/10 bg-ink-900/60 p-4">
           <p className="stat-label">{item.label}</p>
           <p

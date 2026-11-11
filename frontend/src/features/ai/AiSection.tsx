@@ -35,7 +35,7 @@ export function AiSection({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-consent"] });
       setConsentOpen(false);
-      start();
+      startMutation.mutate();
     },
   });
 
