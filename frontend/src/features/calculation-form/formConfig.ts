@@ -20,6 +20,7 @@ const costsShape = {
   commissionPct: z.coerce.number().min(0, "Не меньше 0").max(3, "Не больше 3%"),
   taxOnCoupons: z.boolean(),
   taxProfile: z.string(),
+  annualOtherIncome: z.coerce.number().min(0).optional(),
 };
 
 const filters = z.object(filtersShape);
@@ -77,6 +78,7 @@ export const wheelSchema = z.object({
   reinvestRatePct: z.coerce.number().min(0).max(100).optional(),
   minCashToReinvestRub: z.coerce.number().min(0),
   taxProfile: z.string(),
+  annualOtherIncome: z.coerce.number().min(0).optional(),
   filters,
   costs,
 });
@@ -108,6 +110,7 @@ const defaultCosts = {
   commissionPct: 0.05,
   taxOnCoupons: true,
   taxProfile: "RU_FLAT_13",
+  annualOtherIncome: 0,
 };
 
 export function buildDefaults(code: StrategyCode, defaultParams: Record<string, any>): FormValues {
@@ -167,6 +170,7 @@ export function buildDefaults(code: StrategyCode, defaultParams: Record<string, 
         reinvestRatePct: undefined,
         minCashToReinvestRub: defaultParams.minCashToReinvestRub ?? 1000,
         taxProfile: defaultParams.taxProfile ?? "RU_FLAT_13",
+        annualOtherIncome: defaultParams.annualOtherIncome ?? 0,
       };
   }
 }
@@ -230,8 +234,9 @@ export function buildCalculationsPayload(code: StrategyCode, values: FormValues)
         reinvestRatePct: values.reinvestRatePct || undefined,
         minCashToReinvestRub: values.minCashToReinvestRub,
         taxProfile: values.taxProfile,
+        annualOtherIncome: values.annualOtherIncome,
         filters,
-        costs: { ...costs, taxProfile: values.taxProfile },
+        costs: { ...costs, taxProfile: values.taxProfile, annualOtherIncome: values.annualOtherIncome },
       };
   }
 }

@@ -97,7 +97,7 @@ class AssetCheckServiceTest {
         return new FilterParams(List.of("OFZ", "CORPORATE"), 2, BigDecimal.valueOf(1_000_000_000L),
                 BigDecimal.valueOf(1_000_000L), false, true, new BigDecimal("0.25"), new BigDecimal("0.5"),
                 "A-", List.of("ACRA"), 180, requireRating, false, BigDecimal.valueOf(60),
-                new BigDecimal("0.05"), true, "RU_FLAT_13", true);
+                new BigDecimal("0.05"), true, "RU_FLAT_13", BigDecimal.ZERO, true);
     }
 
     private BondCandidate candidate() {

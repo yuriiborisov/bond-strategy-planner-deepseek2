@@ -46,7 +46,8 @@
    - `RankingService` — score по формуле §3.7;
    - `AssetCheckService` — жёсткие гейты, WATCH-причины, `verdict`, `score`, `checks[]`;
    - аллокация целыми лотами, перенос остатков, комиссии, налоги, денежный поток;
-   - `CalculationResult` (summary / positions / cashFlowSchedule / warnings / assumptions + extras).
+  - налоги: `RU_FLAT_13` (13%) или `RU_PROGRESSIVE_2025` с учётом `costs.annualOtherIncome`
+    (совокупный годовой доход) при выборе ставки;   - `CalculationResult` (summary / positions / cashFlowSchedule / warnings / assumptions + extras).
 6. Результат и параметры сохраняются в `calculations` вместе с `snapshot_ts` и версией алгоритма,
    ответ получает `calculationId`.
 

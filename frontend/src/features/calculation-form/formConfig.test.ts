@@ -32,10 +32,13 @@ describe("calculation form config", () => {
   it("respects provided filters and costs", () => {
     const values = buildDefaults("BARBELL", {
       filters: { minRating: "AA", requireRating: false, minListLevel: 1 },
-      costs: { commissionPct: 0.1 },
+      costs: { commissionPct: 0.1, annualOtherIncome: 3_000_000 },
     });
     expect(values.filters.minRating).toBe("AA");
     expect(values.filters.requireRating).toBe(false);
     expect(values.costs.commissionPct).toBe(0.1);
+    expect(values.costs.annualOtherIncome).toBe(3_000_000);
+    const payload = buildCalculationsPayload("BARBELL", values) as Record<string, any>;
+    expect(payload.costs.annualOtherIncome).toBe(3_000_000);
   });
 });

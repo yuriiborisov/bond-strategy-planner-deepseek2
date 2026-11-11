@@ -34,7 +34,7 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 
 /**
- * WHEEL вЂ” В«РљРѕР»РµСЃРѕВ»: СЂРµРёРЅРІРµСЃС‚РёСЂРѕРІР°РЅРёРµ РєСѓРїРѕРЅРѕРІ, СЃСЂР°РІРЅРµРЅРёРµ СЃС†РµРЅР°СЂРёРµРІ Рё РєР°РїРёС‚Р°Р»РёР·Р°С†РёСЏ (В§3.6).
+ * WHEEL — «Колесо»: реинвестирование купонов, сравнение сценариев и капитализация (§3.6).
  */
 @Component
 @RequiredArgsConstructor
@@ -59,14 +59,15 @@ public class WheelCalculator implements StrategyCalculator {
         BigDecimal minCash = Decimals.nz(params.decimal("minCashToReinvestRub", BigDecimal.ZERO));
         BigDecimal fixedRate = params.decimal("reinvestRatePct", null);
         String taxProfile = params.text("taxProfile", filters.taxProfile());
+        BigDecimal annualOtherIncome = params.decimal("annualOtherIncome", filters.annualOtherIncome());
 
         Params baseParams = baseParams(params, baseStrategy, horizonYears);
         CalculationResult base = "BULLET".equals(baseStrategy)
                 ? bulletCalculator.calculate(context, baseParams)
                 : ladderCalculator.calculate(context, baseParams);
         if (base.getPositions().isEmpty()) {
-            throw ApiException.noCandidates("Р‘Р°Р·РѕРІР°СЏ СЃС‚СЂР°С‚РµРіРёСЏ РЅРµ СЃС„РѕСЂРјРёСЂРѕРІР°Р»Р° РїРѕР·РёС†РёРё",
-                    List.of("РР·РјРµРЅРёС‚СЊ РїР°СЂР°РјРµС‚СЂС‹ Р±Р°Р·РѕРІРѕР№ СЃС‚СЂР°С‚РµРіРёРё", "РћСЃР»Р°Р±РёС‚СЊ С„РёР»СЊС‚СЂС‹"));
+            throw ApiException.noCandidates("Базовая стратегия не сформировала позиции",
+                    List.of("Изменить параметры базовой стратегии", "Ослабить фильтры"));
         }
 
         LocalDate horizonEnd = today.plusYears(horizonYears);
@@ -90,7 +91,8 @@ public class WheelCalculator implements StrategyCalculator {
 
         for (String scenario : List.of("REINVEST", "CASH_OUT", "CASH_BUFFER")) {
             ScenarioResult result = simulate(scenario, context, positions, bySecid, filters, taxProfile,
-                    reinvestRule, minCash, fixedRate, today, horizonEnd, horizonYears, invested, reinvestments);
+                    reinvestRule, minCash, fixedRate, annualOtherIncome,
+                    today, horizonEnd, horizonYears, invested, reinvestments);
             scenarios.put(scenario, result);
             for (CapitalPoint point : result.capitalization()) {
                 Map<String, Object> row = new LinkedHashMap<>();
@@ -142,15 +144,15 @@ public class WheelCalculator implements StrategyCalculator {
         List<WarningItem> warnings = new ArrayList<>(base.getWarnings());
         warnings.addAll(support.dataFreshnessWarning(context.snapshot().dataFreshness()));
         if (reinvest.totalCoupons().signum() == 0) {
-            warnings.add(WarningItem.warn("NO_COUPONS", "РџРѕ Р±Р°Р·РѕРІРѕРјСѓ РїРѕСЂС‚С„РµР»СЋ РЅРµС‚ РєСѓРїРѕРЅРЅС‹С… РІС‹РїР»Р°С‚ РІ РіРѕСЂРёР·РѕРЅС‚Рµ вЂ” СЌС„С„РµРєС‚ СЂРµРёРЅРІРµСЃС‚Р° РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚"));
+            warnings.add(WarningItem.warn("NO_COUPONS", "По базовому портфелю нет купонных выплат в горизонте — эффект реинвеста отсутствует"));
         }
         if (reinvest.finalCapital().compareTo(cashOut.finalCapital()) < 0) {
             warnings.add(WarningItem.warn("REINVEST_UNDERPERFORMS",
-                    "РЎС†РµРЅР°СЂРёР№ СЂРµРёРЅРІРµСЃС‚РёСЂРѕРІР°РЅРёСЏ СѓСЃС‚СѓРїР°РµС‚ РІС‹РІРѕРґСѓ РєСѓРїРѕРЅРѕРІ вЂ” РїСЂРѕРІРµСЂСЊС‚Рµ РґРѕРїСѓС‰РµРЅРёСЏ"));
+                    "Сценарий реинвестирования уступает выводу купонов — проверьте допущения"));
         }
         if (cashBuffer.finalCapital().compareTo(cashOut.finalCapital()) != 0) {
             warnings.add(WarningItem.info("CASH_SCENARIOS_DIFF",
-                    "РЎС†РµРЅР°СЂРёРё CASH_OUT Рё CASH_BUFFER РѕС‚Р»РёС‡Р°СЋС‚СЃСЏ РёР·-Р·Р° РјРѕРјРµРЅС‚Р° РІС‹РІРѕРґР° СЃСЂРµРґСЃС‚РІ"));
+                    "Сценарии CASH_OUT и CASH_BUFFER отличаются из-за момента вывода средств"));
         }
 
         Map<String, Object> details = new LinkedHashMap<>();
@@ -162,13 +164,14 @@ public class WheelCalculator implements StrategyCalculator {
         details.put("horizonYears", horizonYears);
         details.put("reinvestRule", reinvestRule);
         details.put("taxProfile", taxProfile);
+        details.put("annualOtherIncomeRub", Decimals.money(annualOtherIncome));
         details.put("minCashToReinvestRub", Decimals.money(minCash));
         details.put("reinvestRatePct", fixedRate);
         details.put("horizonEnd", horizonEnd);
         details.put("assumptions", Map.of(
-                "valuation", "РћСЃС‚Р°С‚РѕС‡РЅР°СЏ СЃС‚РѕРёРјРѕСЃС‚СЊ Р±СѓРјР°Рі Рє РіРѕСЂРёР·РѕРЅС‚Сѓ вЂ” РїРѕ С†РµРЅРµ РїРѕРєСѓРїРєРё; РєСѓРїРѕРЅС‹ СѓС‡С‚РµРЅС‹ РѕС‚РґРµР»СЊРЅРѕ",
-                "tax", "РќР”Р¤Р› СЃ РєСѓРїРѕРЅРѕРІ РїРѕ РїСЂРѕС„РёР»СЋ " + taxProfile,
-                "commission", filters.commissionPct() + "% РЅР° РєР°Р¶РґС‹Р№ РѕР±РѕСЂРѕС‚"));
+                "valuation", "Остаточная стоимость бумаг к горизонту — по цене покупки; купоны учтены отдельно",
+                "tax", "НДФЛ с купонов по профилю " + taxProfile,
+                "commission", filters.commissionPct() + "% на каждый оборот"));
 
         List<CashFlowPoint> schedule = base.getCashFlowSchedule() == null ? List.of() : base.getCashFlowSchedule();
         return CalculationResult.builder()
@@ -216,7 +219,7 @@ public class WheelCalculator implements StrategyCalculator {
 
     private ScenarioResult simulate(String scenario, CalculationContext context, List<PositionResult> positions,
                                     Map<String, BondCandidate> bySecid, FilterParams filters, String taxProfile,
-                                    String rule, BigDecimal minCash, BigDecimal fixedRate,
+                                    String rule, BigDecimal minCash, BigDecimal fixedRate, BigDecimal annualOtherIncome,
                                     LocalDate today, LocalDate horizonEnd, int horizonYears,
                                     BigDecimal invested, List<Map<String, Object>> reinvestments) {
         BigDecimal cash = BigDecimal.ZERO;
@@ -267,7 +270,7 @@ public class WheelCalculator implements StrategyCalculator {
                     totalCoupons = totalCoupons.add(gross);
                 }
                 BigDecimal tax = "COUPON".equals(event.type())
-                        ? new TaxCalculator().taxOnCoupons(gross, taxProfile, BigDecimal.ZERO)
+                        ? new TaxCalculator().taxOnCoupons(gross, taxProfile, annualOtherIncome)
                         : BigDecimal.ZERO;
                 totalTax = totalTax.add(tax);
                 BigDecimal net = gross.subtract(tax);
@@ -348,7 +351,7 @@ public class WheelCalculator implements StrategyCalculator {
             }
             finalCapital = compounded.add(totalCoupons.subtract(totalTax));
             for (CapitalPoint ignored : capitalization) {
-                // Р·РЅР°С‡РµРЅРёСЏ РІ СЃРµСЂРёРё РґР»СЏ РјРѕРґРµР»СЊРЅРѕРіРѕ СЂРµР¶РёРјР° Р·Р°РјРµРЅСЏСЋС‚СЃСЏ РЅРёР¶Рµ
+                // значения в серии для модельного режима заменяются ниже
             }
             capitalization.clear();
             BigDecimal value = invested;

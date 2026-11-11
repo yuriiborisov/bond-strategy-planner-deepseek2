@@ -297,6 +297,6 @@ public class BarbellCalculator implements StrategyCalculator {
         if (!filters.taxOnCoupons() || couponIncome == null || couponIncome.signum() <= 0) {
             return BigDecimal.ZERO;
         }
-        return new TaxCalculator().taxOnCoupons(couponIncome, filters.taxProfile(), BigDecimal.ZERO);
+        return new TaxCalculator().taxOnCoupons(couponIncome, filters.taxProfile(), filters.annualOtherIncome());
     }
 }

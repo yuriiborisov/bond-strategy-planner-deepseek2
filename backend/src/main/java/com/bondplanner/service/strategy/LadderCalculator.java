@@ -345,14 +345,14 @@ public class LadderCalculator implements StrategyCalculator {
         for (int year = 1; year <= years; year++) {
             BigDecimal gross = couponGross[year];
             BigDecimal tax = filters.taxOnCoupons()
-                    ? new TaxCalculator().taxOnCoupons(gross, filters.taxProfile(), BigDecimal.ZERO)
+                    ? new TaxCalculator().taxOnCoupons(gross, filters.taxProfile(), filters.annualOtherIncome())
                     : BigDecimal.ZERO;
             BigDecimal net = gross.subtract(tax).add(maturities[year]);
             BigDecimal capital = BigDecimal.valueOf(invested.doubleValue() * Math.pow(1 + rate, year));
             for (int y = 1; y <= year; y++) {
                 BigDecimal yearNet = couponGross[y]
                         .subtract(filters.taxOnCoupons()
-                                ? new TaxCalculator().taxOnCoupons(couponGross[y], filters.taxProfile(), BigDecimal.ZERO)
+                                ? new TaxCalculator().taxOnCoupons(couponGross[y], filters.taxProfile(), filters.annualOtherIncome())
                                 : BigDecimal.ZERO)
                         .add(maturities[y]);
                 capital = capital.add(BigDecimal.valueOf(yearNet.doubleValue() * Math.pow(1 + rate, year - y)));
@@ -439,7 +439,7 @@ public class LadderCalculator implements StrategyCalculator {
         if (!filters.taxOnCoupons() || couponIncome == null || couponIncome.signum() <= 0) {
             return BigDecimal.ZERO;
         }
-        return new TaxCalculator().taxOnCoupons(couponIncome, filters.taxProfile(), BigDecimal.ZERO);
+        return new TaxCalculator().taxOnCoupons(couponIncome, filters.taxProfile(), filters.annualOtherIncome());
     }
 
     private record RankedRung(BondCandidate candidate, BondMetricsService.BondMetrics metrics, long dayDiff) {

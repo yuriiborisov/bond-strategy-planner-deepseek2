@@ -195,6 +195,13 @@ export function StrategyForm({
                   <option value="RU_PROGRESSIVE_2025">RU_PROGRESSIVE_2025 — прогрессивная шкала</option>
                 </Select>
               </Field>
+              <Field
+                label="Совокупный годовой доход, ₽"
+                hint="Нужен только для прогрессивной шкалы"
+                error={errorOf("annualOtherIncome")}
+              >
+                <TextInput type="number" step="100000" min="0" {...register("annualOtherIncome")} />
+              </Field>
             </>
           ) : null}
         </div>
@@ -276,8 +283,15 @@ export function StrategyForm({
                 <option value="RU_PROGRESSIVE_2025">RU_PROGRESSIVE_2025</option>
               </Select>
             </Field>
+            <Field
+              label="Совокупный годовой доход, ₽"
+              hint="Для прогрессивной шкалы 2025"
+              error={errorOf("costs.annualOtherIncome")}
+            >
+              <TextInput type="number" step="100000" min="0" {...register("costs.annualOtherIncome")} />
+            </Field>
             <div className="flex items-end">
-              <Checkbox label="Учитывать НДФЛ с купонов" className="w-full" {...register("costs.taxOnCoupons")} />
+              <Checkbox label="Учитывать НДФЛ с купонов" {...register("costs.taxOnCoupons")} />
             </div>
           </div>
         </details>

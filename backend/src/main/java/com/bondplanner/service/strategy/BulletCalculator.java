@@ -306,7 +306,7 @@ public class BulletCalculator implements StrategyCalculator {
             return BigDecimal.ZERO;
         }
         TaxCalculator calculator = new TaxCalculator();
-        return calculator.taxOnCoupons(couponIncome, filters.taxProfile(), BigDecimal.ZERO);
+        return calculator.taxOnCoupons(couponIncome, filters.taxProfile(), filters.annualOtherIncome());
     }
 
     private String reason(BondCandidate candidate, BondMetricsService.BondMetrics metrics, LocalDate targetDate,

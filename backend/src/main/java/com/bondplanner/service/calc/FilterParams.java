@@ -26,6 +26,7 @@ public record FilterParams(
         BigDecimal commissionPct,
         boolean taxOnCoupons,
         String taxProfile,
+        BigDecimal annualOtherIncome,
         boolean assetChecks) {
 
     public static FilterParams from(Params params) {
@@ -51,6 +52,7 @@ public record FilterParams(
                 costs.bool("taxOnCoupons", true),
                 TaxCalculator.RU_FLAT_13.equalsIgnoreCase(costs.text("taxProfile", TaxCalculator.RU_FLAT_13))
                         ? TaxCalculator.RU_FLAT_13 : TaxCalculator.RU_PROGRESSIVE_2025,
+                costs.decimal("annualOtherIncome", BigDecimal.ZERO),
                 enrichment.bool("assetChecks", true));
     }
 }
