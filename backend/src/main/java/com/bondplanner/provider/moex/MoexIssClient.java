@@ -66,10 +66,15 @@ public class MoexIssClient implements ExchangeProvider {
         return result;
     }
 
+    /**
+     * MOEX ISS может игнорировать limit/start для блока securities и возвращать весь рынок
+     * на каждой странице. Поэтому останавливаемся, когда страница не добавляет новых бумаг.
+     */
     private List<RawBond> fetchBoard(String board) {
         List<RawBond> bonds = new ArrayList<>();
+        java.util.Set<String> seenSecids = new java.util.HashSet<>();
         int start = 0;
-        while (true) {
+        for (int page = 0; page < 100; page++) {
             String url = baseUrl + "/engines/stock/markets/bonds/boards/" + board
                     + "/securities.json?iss.meta=off&iss.only=securities,marketdata&limit=" + PAGE_SIZE
                     + "&start=" + start;
@@ -89,19 +94,21 @@ public class MoexIssClient implements ExchangeProvider {
                     marketBySecid.put(String.valueOf(secid), map);
                 }
             }
+            int added = 0;
             for (JsonNode row : securities.get("data")) {
                 Map<String, Object> map = toMap(secColumns, row);
                 String secid = str(map.get("SECID"));
-                if (secid == null) {
+                if (secid == null || !seenSecids.add(secid)) {
                     continue;
                 }
+                added++;
                 Map<String, Object> md = marketBySecid.getOrDefault(secid, Map.of());
                 bonds.add(mapBond(board, map, md));
             }
-            start += PAGE_SIZE;
-            if (start > 10_000) {
+            if (added == 0) {
                 break;
             }
+            start += Math.max(PAGE_SIZE, securities.get("data").size());
         }
         return bonds;
     }
@@ -137,7 +144,7 @@ public class MoexIssClient implements ExchangeProvider {
                 decimal(s.get("FACEVALUE")),
                 decimal(s.get("COUPONVALUE")),
                 integer(s.get("COUPONPERIOD")),
-                matDateRaw == null || matDateRaw.isBlank() ? null : LocalDate.parse(matDateRaw),
+                parseDate(matDateRaw),
                 parseDate(str(s.get("OFFERDATE"))),
                 integer(s.get("LISTLEVEL")),
                 lotSize == null ? 1 : Math.max(1, lotSize),

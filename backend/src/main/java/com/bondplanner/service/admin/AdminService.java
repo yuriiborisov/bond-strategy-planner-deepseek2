@@ -76,7 +76,6 @@ public class AdminService {
     private final AppProperties properties;
     private final ObjectMapper objectMapper;
 
-    @Transactional
     public Map<String, Object> sync(String exchange, String kind) {
         SyncRun run = syncService.run(exchange == null ? "MOEX" : exchange,
                 kind == null ? "FULL" : kind.toUpperCase());
@@ -119,7 +118,6 @@ public class AdminService {
         return ratingImportService.importCsv(inputStream);
     }
 
-    @Transactional
     public Map<String, Object> syncRatingSource(String code) {
         RatingSource source = ratingSourceRepository.findByCode(code)
                 .orElseThrow(() -> ApiException.notFound("Источник рейтингов не найден: " + code));

@@ -29,7 +29,10 @@ export class ApiError extends Error {
 export function getSessionId(): string {
   let value = localStorage.getItem(SESSION_KEY);
   if (!value) {
-    value = crypto.randomUUID();
+    value =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     localStorage.setItem(SESSION_KEY, value);
   }
   return value;

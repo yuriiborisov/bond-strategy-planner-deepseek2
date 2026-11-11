@@ -55,7 +55,6 @@ public class SyncService {
     private final AppProperties properties;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    @Transactional
     public SyncRun run(String exchangeCode, String kind) {
         if (!running.compareAndSet(false, true)) {
             throw new ApiException(HttpStatus.CONFLICT, "CONFLICT", "Синхронизация уже выполняется");
@@ -106,7 +105,9 @@ public class SyncService {
                         }
                     } catch (Exception ex) {
                         errors++;
-                        log.debug("Не удалось сохранить бумагу {}: {}", raw.secid(), ex.getMessage());
+                        if (errors <= 3) {
+                            log.warn("Не удалось сохранить бумагу {}: {}", raw.secid(), ex.getMessage());
+                        }
                     }
                 }
             }
@@ -129,7 +130,9 @@ public class SyncService {
                         rows++;
                     } catch (Exception ex) {
                         errors++;
-                        log.debug("Купонный календарь {} не загружен: {}", bond.getSecid(), ex.getMessage());
+                        if (errors <= 3) {
+                            log.warn("Купонный календарь {} не загружен: {}", bond.getSecid(), ex.getMessage());
+                        }
                     }
                 }
             }
@@ -191,7 +194,9 @@ public class SyncService {
                 bond.setIssuer(issuer);
             }
         }
-        return bondRepository.save(bond);
+        Bond saved = bondRepository.save(bond);
+        existing.put(key, saved);
+        return saved;
     }
 
     private boolean upsertQuote(Bond bond, RawBond raw, Instant snapshot) {
