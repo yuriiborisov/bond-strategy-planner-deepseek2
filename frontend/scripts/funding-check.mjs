@@ -1,0 +1,18 @@
+﻿import { chromium } from "playwright";
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: "ru-RU" });
+const errors=[];
+page.on("console", m => { if (m.type()==="error") errors.push(m.text()); });
+page.on("pageerror", e => errors.push(e.message));
+await page.goto("http://localhost:13000/strategies/BULLET", {waitUntil:"networkidle"});
+await page.getByRole("button", {name:"Рассчитать"}).click();
+await page.getByRole("heading", {name:"Покупки активов и пополнения"}).waitFor({timeout:30000});
+console.log("bullet plan label:", await page.getByText("Покупки по плану").count());
+await page.screenshot({path:"screenshots/11-bullet-funding.png", fullPage:true});
+await page.goto("http://localhost:13000/strategies/LADDER", {waitUntil:"networkidle"});
+await page.getByRole("button", {name:"Рассчитать"}).click();
+await page.getByRole("heading", {name:"Покупки активов и пополнения"}).waitFor({timeout:30000});
+const note = await page.getByText("Все активы куплены на старте").count();
+console.log("ladder initial-purchase note:", note);
+console.log("errors:", errors.length ? errors.join(" | ") : "none");
+await browser.close();

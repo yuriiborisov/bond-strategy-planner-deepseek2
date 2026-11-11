@@ -50,6 +50,7 @@ public class CalculationService {
     private final UniverseService universeService;
     private final BondMetricsService metricsService;
     private final RankingService rankingService;
+    private final FundingScheduleService fundingScheduleService;
     private final UniverseFilter universeFilter;
     private final AssetCheckService assetCheckService;
     private final com.bondplanner.service.cashflow.CashFlowEngine cashFlowEngine;
@@ -120,6 +121,10 @@ public class CalculationService {
         }
 
         JsonNode resultNode = objectMapper.valueToTree(result);
+        ObjectNode fundingSchedule = fundingScheduleService.build(strategyCode, (ObjectNode) resultNode);
+        if (fundingSchedule != null) {
+            ((ObjectNode) resultNode).set("fundingSchedule", fundingSchedule);
+        }
         Calculation calculation = new Calculation();
         calculation.setUser(user);
         calculation.setAnonymousSessionId(effectiveSession);

@@ -198,6 +198,40 @@ export interface Reinvestment {
   pricePct?: number | null;
 }
 
+export interface FundingRow {
+  date: string;
+  period: string;
+  contributionRub: number;
+  purchasesRub: number;
+  cashRub: number;
+  investedRub: number;
+  portfolioValueRub: number;
+  label?: string;
+}
+
+export interface FundingPurchase {
+  date: string;
+  secid: string;
+  name?: string;
+  quantity: number;
+  amountRub: number;
+  kind: string;
+}
+
+export interface FundingSchedule {
+  startDate: string;
+  endDate: string;
+  monthlyContributionRub: number;
+  initialContributionRub: number;
+  totalContributionsRub: number;
+  totalPurchasesRub: number;
+  cashResidualRub: number;
+  investedRub: number;
+  rows: FundingRow[];
+  purchases: FundingPurchase[];
+  note?: string;
+}
+
 export interface Candidate {
   bond: BondInfo;
   score: number;
@@ -234,6 +268,7 @@ export interface CalculationResult {
   comparison?: ComparisonRow[];
   capitalizationSeries?: CapitalizationPoint[];
   reinvestments?: Reinvestment[];
+  fundingSchedule?: FundingSchedule;
   baseStrategy?: string;
   horizonYears?: number;
   reinvestRule?: string;

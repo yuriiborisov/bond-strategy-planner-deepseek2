@@ -8,6 +8,7 @@ import { AiSection } from "../ai/AiSection";
 import { AllocationChart, CashFlowChart } from "./Charts";
 import { ChecksList } from "./ChecksList";
 import { LadderSection, WheelSection } from "./LadderWheelSections";
+import { FundingScheduleSection } from "./FundingSchedule";
 import { PositionsTable } from "./PositionsTable";
 import { SummaryMetrics } from "./SummaryMetrics";
 import { BarbellSection, BulletSection } from "./StrategySections";
@@ -104,6 +105,8 @@ export function ResultsView({ result, onRecalculate }: { result: CalculationResu
           <AllocationChart positions={result.positions} />
         </SectionCard>
       </div>
+
+      <FundingScheduleSection schedule={result.fundingSchedule} />
 
       {result.warnings.length ? (
         <SectionCard title="Предупреждения" subtitle="Что стоит проверить перед решением">

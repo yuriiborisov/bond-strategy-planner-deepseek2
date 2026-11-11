@@ -19,6 +19,7 @@ import {
 import { AiSection } from "../../features/ai/AiSection";
 import { AllocationChart, CashFlowChart } from "../../features/results/Charts";
 import { LadderSection, WheelSection } from "../../features/results/LadderWheelSections";
+import { FundingScheduleSection } from "../../features/results/FundingSchedule";
 import { PositionsTable } from "../../features/results/PositionsTable";
 import { SummaryMetrics } from "../../features/results/SummaryMetrics";
 import { BarbellSection, BulletSection } from "../../features/results/StrategySections";
@@ -139,6 +140,8 @@ export function PortfolioDetailPage() {
               <AllocationChart positions={result.positions} />
             </SectionCard>
           </div>
+
+          <FundingScheduleSection schedule={result.fundingSchedule} />
 
           {result.warnings.length ? (
             <SectionCard title="Предупреждения" subtitle="Актуально на дату снимка">

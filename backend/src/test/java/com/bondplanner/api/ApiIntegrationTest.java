@@ -68,6 +68,8 @@ class ApiIntegrationTest {
         assertThat(result.path("summary").path("investedRub").decimalValue())
                 .isLessThanOrEqualTo(result.path("summary").path("totalAmountRub").decimalValue());
         assertThat(result.path("summary").path("cashResidualRub").decimalValue().signum()).isGreaterThanOrEqualTo(0);
+        assertThat(result.path("fundingSchedule").path("rows").size()).isGreaterThanOrEqualTo(1);
+        assertThat(result.path("fundingSchedule").path("purchases").size()).isEqualTo(5);
         for (JsonNode rung : result.path("rungs")) {
             assertThat(rung.path("status").asText()).isIn("FILLED", "SKIPPED_INSUFFICIENT_BUDGET", "NO_CANDIDATES",
                     "ASSET_CHECK_FAILED", "NO_PRICED_CANDIDATES");
@@ -84,6 +86,9 @@ class ApiIntegrationTest {
         assertThat(result.path("contributionScenarios").size()).isEqualTo(3);
         assertThat(result.path("monthlyContributionRub").decimalValue().signum()).isPositive();
         assertThat(result.path("summary").path("achievement").isBoolean()).isTrue();
+        assertThat(result.path("fundingSchedule").path("rows").size()).isGreaterThan(1);
+        assertThat(result.path("fundingSchedule").path("purchases").size()).isGreaterThan(0);
+        assertThat(result.path("fundingSchedule").path("monthlyContributionRub").decimalValue().signum()).isPositive();
     }
 
     @Test
