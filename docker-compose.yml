@@ -1,15 +1,15 @@
-name: bond-strategy-planner
+name: bond-strategy-planner-deepseek2
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: bsp-postgres
+    container_name: bsp2-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-bondplanner}
       POSTGRES_USER: ${POSTGRES_USER:-bondplanner}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bondplanner}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -21,10 +21,10 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: bsp-redis
+    container_name: bsp2-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -37,9 +37,9 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    container_name: bsp-ollama
+    container_name: bsp2-ollama
     ports:
-      - "11434:11434"
+      - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollamadata:/root/.ollama
     healthcheck:
@@ -54,7 +54,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: bsp-backend
+    container_name: bsp2-backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,8 +78,9 @@ services:
       APP_LLM_DAILY_LIMIT: ${APP_LLM_DAILY_LIMIT:-0}
       APP_LLM_PRIVACY_MODE: ${APP_LLM_PRIVACY_MODE:-PERCENT_ONLY}
       APP_SEED_DEMO: ${APP_SEED_DEMO:-true}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 10s
@@ -94,12 +95,12 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: /api/v1
-    container_name: bsp-frontend
+    container_name: bsp2-frontend
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
       interval: 10s
@@ -109,12 +110,12 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: bsp-pgadmin
+    container_name: bsp2-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local.dev}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     depends_on:
       postgres:
         condition: service_healthy

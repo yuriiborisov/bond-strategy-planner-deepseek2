@@ -81,6 +81,32 @@ docker compose up -d --build
 - PostgreSQL: localhost:5432 (`bondplanner`/`bondplanner`)
 - Опционально: `docker compose --profile cache up -d` (Redis), `--profile tools` (pgAdmin), `--profile llm` (Ollama).
 
+Если порты 3000/8080/5432 уже заняты, задайте в `.env` свободные:
+
+```dotenv
+FRONTEND_PORT=13000
+BACKEND_PORT=18080
+POSTGRES_PORT=15432
+APP_CORS_ALLOWED_ORIGINS=http://localhost:13000,http://127.0.0.1:13000
+```
+
+UI будет доступен на `http://localhost:13000`, API — на `http://localhost:18080/api/v1`.
+Compose-проект называется `bond-strategy-planner-deepseek2`, контейнеры — `bsp2-*`, поэтому он
+не конфликтует с другими compose-проектами на той же машине.
+
+Для ручной проверки AI без внешней модели в `.env` можно включить детерминированный провайдер:
+
+```dotenv
+APP_LLM_ENABLED=true
+APP_LLM_PROVIDER=STUB
+APP_LLM_BASE_URL=http://stub/v1
+APP_LLM_MODEL=stub-model
+```
+
+Демо-доступ: `admin@local.dev` / `admin12345` (ADMIN). Демо-данные создаются при первом старте
+(`APP_SEED_DEMO=true`); полную синхронизацию с MOEX можно запустить в админке
+(`/admin/sync`) или `POST /api/v1/admin/sync`.
+
 ## Расчётные стратегии
 
 ### BULLET

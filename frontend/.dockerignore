@@ -1,0 +1,12 @@
+node_modules/
+dist/
+screenshots/
+scripts/
+coverage/
+playwright-report/
+test-results/
+.vite/
+*.log
+.DS_Store
+.idea/
+.vscode/
