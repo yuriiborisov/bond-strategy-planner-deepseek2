@@ -76,8 +76,10 @@ app:
     provider: ${APP_LLM_PROVIDER:LMSTUDIO}
     base-url: ${APP_LLM_BASE_URL:}
     api-key: ${APP_LLM_API_KEY:}
-    model: ${APP_LLM_MODEL:qwen3.5-14b}
+    model: ${APP_LLM_MODEL:qwen3-14b}
     timeout: ${APP_LLM_TIMEOUT:PT60S}
+    max-tokens: ${APP_LLM_MAX_TOKENS:1500}
+    disable-thinking: ${APP_LLM_DISABLE_THINKING:true}
     daily-limit: ${APP_LLM_DAILY_LIMIT:0}
     privacy-mode: ${APP_LLM_PRIVACY_MODE:PERCENT_ONLY}
     max-context-tokens: ${APP_LLM_MAX_CONTEXT_TOKENS:12000}

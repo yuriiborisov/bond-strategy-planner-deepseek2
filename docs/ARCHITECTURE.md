@@ -107,6 +107,13 @@
 - `AiExecutor`: провайдер (`STUB`, `LMSTUDIO`, `OPENAI_COMPATIBLE`, `OLLAMA`, `YANDEX` через
   OpenAI-совместимый endpoint), JSON-repair один раз, JSON Schema-проверка, grounding
   (whitelist `secid` и `sourceRefs`), серверный дисклеймер, сохранение токенов/стоимости/latency.
+- Реальная интеграция проверена с LM Studio: `qwen3-14b`, `http://host.robotcomp:1234/v1`,
+  API key через `APP_LLM_API_KEY`. Для Qwen3 включается `/no_think` (`APP_LLM_DISABLE_THINKING`),
+  иначе reasoning-модель может вернуть пустой `content`; при 400 на `response_format` провайдер
+  повторяет запрос без него.
+- Ответ нормализуется: строковые `risks` превращаются в объекты, строковые `nextActions` — в
+  операционные действия с типом/датой/приоритетом, `secid` из текста привязываются к позициям,
+  пустые `sources` заполняются refs из контекста. Выдуманные тикеры/refs удаляются.
 - При недоступности провайдера возвращается детерминированный fallback с `fallback=true`,
   ядро и расчёты не страдают.
 - `APP_LLM_ENABLED=false` → AI-эндпоинты отдают `503 LLM_UNAVAILABLE`; UI показывает, что модуль выключен.

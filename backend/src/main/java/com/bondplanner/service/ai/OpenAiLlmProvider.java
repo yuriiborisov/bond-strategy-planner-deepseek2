@@ -70,41 +70,69 @@ public class OpenAiLlmProvider implements LlmProvider {
         AppProperties.Llm llm = properties.getLlm();
         String url = normalizeBase(llm.getBaseUrl()) + "/chat/completions";
         long started = System.currentTimeMillis();
+        String model = request.model() == null || request.model().isBlank() ? llm.getModel() : request.model();
         try {
             Map<String, Object> body = new java.util.LinkedHashMap<>();
-            body.put("model", request.model() == null || request.model().isBlank() ? llm.getModel() : request.model());
+            body.put("model", model);
             body.put("temperature", request.temperature());
             body.put("max_tokens", request.maxTokens());
+            String systemPrompt = request.systemPrompt();
+            // Qwen3 — reasoning-модель: без /no_think она тратит весь лимит токенов
+            // на reasoning_content и возвращает пустой content.
+            if (llm.isDisableThinking() && model.toLowerCase().contains("qwen3")) {
+                systemPrompt = systemPrompt + "\n/no_think";
+            }
             body.put("messages", List.of(
-                    Map.of("role", "system", "content", request.systemPrompt()),
+                    Map.of("role", "system", "content", systemPrompt),
                     Map.of("role", "user", "content", request.userPrompt())));
-            if (request.jsonMode()) {
+            boolean jsonMode = request.jsonMode();
+            if (jsonMode) {
                 body.put("response_format", Map.of("type", "json_object"));
             }
-            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url))
-                    .timeout(llm.getTimeout() == null ? Duration.ofSeconds(60) : llm.getTimeout())
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + (llm.getApiKey() == null ? "" : llm.getApiKey()))
-                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
-                    .build();
-            HttpResponse<String> response = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(5))
-                    .build()
-                    .send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = send(url, body, llm);
+            // Некоторые LM Studio / локальные серверы не поддерживают response_format.
+            if (response.statusCode() == 400 && jsonMode) {
+                log.warn("LLM не поддерживает response_format, повторяем без него");
+                body.remove("response_format");
+                response = send(url, body, llm);
+            }
             if (response.statusCode() >= 300) {
                 throw new IllegalStateException("LLM status " + response.statusCode() + ": "
                         + response.body().substring(0, Math.min(300, response.body().length())));
             }
             JsonNode root = objectMapper.readTree(response.body());
-            String content = root.path("choices").path(0).path("message").path("content").asText("");
+            JsonNode message = root.path("choices").path(0).path("message");
+            String content = message.path("content").asText("");
+            if (content.isBlank()) {
+                String reasoning = message.path("reasoning_content").asText("");
+                if (!reasoning.isBlank()) {
+                    throw new IllegalStateException("Модель вернула только reasoning_content без финального JSON: "
+                            + reasoning.substring(0, Math.min(200, reasoning.length())));
+                }
+                throw new IllegalStateException("LLM вернул пустой content");
+            }
             int tokensIn = root.path("usage").path("prompt_tokens").asInt(0);
             int tokensOut = root.path("usage").path("completion_tokens").asInt(0);
-            log.info("LLM ответ за {} мс, tokens in/out {}/{}", System.currentTimeMillis() - started, tokensIn, tokensOut);
+            log.info("LLM ответ за {} мс, model={}, tokens in/out {}/{}",
+                    System.currentTimeMillis() - started, root.path("model").asText(model), tokensIn, tokensOut);
             return new LlmResponse(content, tokensIn, tokensOut, 0.0,
-                    root.path("model").asText(request.model()), Map.of("latencyMs", System.currentTimeMillis() - started));
+                    root.path("model").asText(model), Map.of("latencyMs", System.currentTimeMillis() - started));
         } catch (Exception ex) {
             throw new IllegalStateException("LLM недоступен: " + ex.getMessage(), ex);
         }
+    }
+
+    private HttpResponse<String> send(String url, Map<String, Object> body, AppProperties.Llm llm) throws Exception {
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url))
+                .timeout(llm.getTimeout() == null ? Duration.ofSeconds(60) : llm.getTimeout())
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + (llm.getApiKey() == null ? "" : llm.getApiKey()))
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                .build();
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build()
+                .send(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
     private String normalizeBase(String baseUrl) {

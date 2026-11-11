@@ -175,6 +175,9 @@ public class AiContextBuilder {
             item.put("rating", bond.path("rating").asText(""));
             item.put("ratingAgency", bond.path("ratingAgency").asText(""));
             item.put("ratingOutlook", bond.path("ratingOutlook").asText(""));
+            if (!bond.path("rating").asText("").isBlank()) {
+                refs.add("rating:" + secid);
+            }
             JsonNode checks = node.path("checks");
             if (checks.isObject()) {
                 item.put("verdict", checks.path("verdict").asText("UNKNOWN"));
@@ -196,6 +199,21 @@ public class AiContextBuilder {
                 item.put("recommendedAmountRub", node.path("amountRub").decimalValue());
             }
         }
+        ArrayNode sources = root.putArray("availableSources");
+        for (String ref : refs) {
+            ObjectNode source = sources.addObject();
+            source.put("ref", ref);
+            if (ref.startsWith("bond:")) {
+                String secid = ref.substring("bond:".length());
+                source.put("title", "MOEX ISS — карточка бумаги " + secid);
+                source.put("url", "https://www.moex.com/ru/issue.aspx?code=" + secid);
+            } else if (ref.startsWith("rating:")) {
+                String secid = ref.substring("rating:".length());
+                source.put("title", "Кредитный рейтинг эмитента (" + secid + ")");
+                source.put("url", "https://www.acra-ratings.ru/");
+            }
+        }
+        root.put("notes", "Используй только ref из availableSources для поля sources");
         String json = toJson(root);
         return new Context(json, secids, refs, deterministicDiscoverySummary(result, list.size()));
     }

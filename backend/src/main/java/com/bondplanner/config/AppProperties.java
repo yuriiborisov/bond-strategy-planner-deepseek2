@@ -42,8 +42,10 @@ public class AppProperties {
         private String provider = "LMSTUDIO";
         private String baseUrl = "";
         private String apiKey = "";
-        private String model = "qwen3.5-14b";
+        private String model = "qwen3-14b";
         private Duration timeout = Duration.ofSeconds(60);
+        private int maxTokens = 1500;
+        private boolean disableThinking = true;
         private int dailyLimit = 0;
         private String privacyMode = "PERCENT_ONLY";
         private int maxContextTokens = 12000;

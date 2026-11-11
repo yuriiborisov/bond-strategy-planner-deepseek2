@@ -50,14 +50,16 @@ public class AiExecutor {
 
             LlmProvider provider = selectProvider();
             LlmProvider.LlmResponse response = provider.complete(new LlmProvider.LlmRequest(
-                    systemPrompt, userPrompt, analysis.getModel(), 0.2, 1500, true));
+                    systemPrompt, userPrompt, analysis.getModel(), 0.2,
+                    properties.getLlm().getMaxTokens(), true));
 
             JsonNode parsed = parse(response.content());
             if (!isValid(parsed)) {
                 LlmProvider.LlmResponse repair = provider.complete(new LlmProvider.LlmRequest(
                         systemPrompt + "\n\nПредыдущий ответ не соответствовал JSON-схеме. Верни ТОЛЬКО корректный JSON.",
                         userPrompt + "\n\nПредыдущий ответ: " + truncate(response.content(), 2000),
-                        analysis.getModel(), 0.1, 1500, true));
+                        analysis.getModel(), 0.1,
+                        properties.getLlm().getMaxTokens(), true));
                 parsed = parse(repair.content());
                 response = new LlmProvider.LlmResponse(repair.content(),
                         response.tokensIn() + repair.tokensIn(), response.tokensOut() + repair.tokensOut(),
@@ -133,6 +135,51 @@ public class AiExecutor {
         List<String> issues = new java.util.ArrayList<>();
         ArrayNode actions = clean.has("nextActions") && clean.get("nextActions").isArray()
                 ? (ArrayNode) clean.get("nextActions") : objectMapper.createArrayNode();
+        ArrayNode normalizedActions = objectMapper.createArrayNode();
+        for (JsonNode action : actions) {
+            ObjectNode node;
+            if (action.isObject()) {
+                node = ((ObjectNode) action).deepCopy();
+            } else if (action.isTextual()) {
+                node = objectMapper.createObjectNode();
+                node.put("title", action.asText());
+                issues.add("normalized textual nextAction");
+            } else {
+                removed++;
+                issues.add("non-object nextAction");
+                continue;
+            }
+            if (node.path("title").asText("").isBlank()) {
+                node.put("title", node.path("details").asText("Проверить портфель"));
+            }
+            if (node.path("type").asText("").isBlank()) {
+                node.put("type", inferActionType(node.path("title").asText("")));
+            }
+            if (node.path("date").asText("").isBlank()) {
+                node.put("date", java.time.LocalDate.now().plusDays(14).toString());
+            }
+            if (node.path("priority").asText("").isBlank()) {
+                node.put("priority", "MEDIUM");
+            }
+            if (!node.has("relatedSecids") || !node.get("relatedSecids").isArray()) {
+                node.putArray("relatedSecids");
+            }
+            if (!node.has("sourceRefs") || !node.get("sourceRefs").isArray()) {
+                node.putArray("sourceRefs");
+            }
+            // Если модель не указала бумаги, ищем известные secid в тексте действия.
+            if (((ArrayNode) node.get("relatedSecids")).isEmpty()) {
+                String text = node.path("title").asText("") + " " + node.path("details").asText("");
+                for (String secid : knownSecids) {
+                    if (text.contains(secid)) {
+                        ((ArrayNode) node.get("relatedSecids")).add(secid);
+                    }
+                }
+            }
+            normalizedActions.add(node);
+        }
+        actions = normalizedActions;
+        clean.set("nextActions", actions);
         for (JsonNode action : actions) {
             ObjectNode node = (ObjectNode) action;
             ArrayNode secids = node.has("relatedSecids") ? (ArrayNode) node.get("relatedSecids") : null;
@@ -161,6 +208,19 @@ public class AiExecutor {
                 }
                 node.set("sourceRefs", filtered);
             }
+            if (((ArrayNode) node.get("sourceRefs")).isEmpty()) {
+                ArrayNode sourceRefsForAction = (ArrayNode) node.get("sourceRefs");
+                for (JsonNode secid : node.get("relatedSecids")) {
+                    String bondRef = "bond:" + secid.asText();
+                    String ratingRef = "rating:" + secid.asText();
+                    if (knownRefs.contains(bondRef)) {
+                        sourceRefsForAction.add(bondRef);
+                    }
+                    if (knownRefs.contains(ratingRef)) {
+                        sourceRefsForAction.add(ratingRef);
+                    }
+                }
+            }
         }
         if (clean.has("watchlist") && clean.get("watchlist").isArray()) {
             ArrayNode filtered = objectMapper.createArrayNode();
@@ -186,12 +246,118 @@ public class AiExecutor {
             }
             clean.set("sources", filtered);
         }
+        ensureSources(clean, knownRefs);
+        if (clean.has("candidates") && clean.get("candidates").isArray()) {
+            ArrayNode filtered = objectMapper.createArrayNode();
+            for (JsonNode candidate : clean.get("candidates")) {
+                String secid = candidate.path("secid").asText("");
+                if (knownSecids.contains(secid)) {
+                    filtered.add(candidate);
+                } else {
+                    removed++;
+                    issues.add("unknown candidate secid: " + secid);
+                }
+            }
+            clean.set("candidates", filtered);
+        }
+        normalizeRisks(clean);
+        String health = clean.path("portfolioHealth").asText("WATCH").toUpperCase();
+        if (!List.of("OK", "WATCH", "ACTION_REQUIRED").contains(health)) {
+            health = "WATCH";
+        }
+        clean.put("portfolioHealth", health);
         ObjectNode grounding = clean.putObject("grounding");
         grounding.put("removed", removed);
         grounding.put("checkedSecids", knownSecids.size());
         ArrayNode issueNodes = grounding.putArray("issues");
         issues.stream().distinct().limit(20).forEach(issueNodes::add);
         return clean;
+    }
+
+    private String inferActionType(String title) {
+        String text = title == null ? "" : title.toLowerCase();
+        if (text.contains("реинвест")) {
+            return "REINVEST_COUPON";
+        }
+        if (text.contains("рейтинг")) {
+            return "CHECK_RATING";
+        }
+        if (text.contains("оферт")) {
+            return "CHECK_OFFER";
+        }
+        if (text.contains("погаш")) {
+            return "REVIEW_MATURITY";
+        }
+        if (text.contains("диверсиф")) {
+            return "DIVERSIFY";
+        }
+        if (text.contains("обнов")) {
+            return "UPDATE_DATA";
+        }
+        return "HOLD";
+    }
+
+    /**
+     * Если модель не вернула источники, подставляем refs из контекста (не выдуманные).
+     */
+    private void ensureSources(ObjectNode clean, List<String> knownRefs) {
+        if (clean.has("sources") && clean.get("sources").isArray() && clean.get("sources").size() > 0) {
+            return;
+        }
+        ArrayNode sources = objectMapper.createArrayNode();
+        int count = 0;
+        for (String ref : knownRefs) {
+            if (count >= 8) {
+                break;
+            }
+            ObjectNode source = objectMapper.createObjectNode();
+            source.put("ref", ref);
+            if (ref.startsWith("bond:")) {
+                String secid = ref.substring("bond:".length());
+                source.put("title", "MOEX ISS — карточка бумаги " + secid);
+                source.put("url", "https://www.moex.com/ru/issue.aspx?code=" + secid);
+            } else if (ref.startsWith("rating:")) {
+                source.put("title", "Кредитный рейтинг эмитента (" + ref.substring("rating:".length()) + ")");
+                source.put("url", "https://www.acra-ratings.ru/");
+            } else if (ref.startsWith("cashflow:")) {
+                source.put("title", "Купонный календарь портфеля");
+                source.put("url", "https://www.moex.com/");
+            } else {
+                continue;
+            }
+            sources.add(source);
+            count++;
+        }
+        clean.set("sources", sources);
+    }
+
+    /**
+     * Модель может вернуть risks как строки вместо объектов — приводим к схеме UI.
+     */
+    private void normalizeRisks(ObjectNode clean) {
+        if (!clean.has("risks") || !clean.get("risks").isArray()) {
+            clean.putArray("risks");
+            return;
+        }
+        ArrayNode normalized = objectMapper.createArrayNode();
+        for (JsonNode item : clean.get("risks")) {
+            if (item.isTextual()) {
+                ObjectNode node = normalized.addObject();
+                node.put("code", "MODEL");
+                node.put("severity", "MEDIUM");
+                node.put("message", item.asText());
+            } else if (item.isObject() && !item.path("message").asText("").isBlank()) {
+                ObjectNode node = ((ObjectNode) item).deepCopy();
+                if (!node.hasNonNull("severity")) {
+                    node.put("severity", "MEDIUM");
+                }
+                if (!node.hasNonNull("code")) {
+                    node.put("code", "MODEL");
+                }
+                normalized.add(node);
+            }
+        }
+        clean.set("risks", normalized);
     }
 
     private ObjectNode fallback(LlmAnalysis analysis, Exception ex) {

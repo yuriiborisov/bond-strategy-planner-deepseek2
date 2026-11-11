@@ -94,14 +94,23 @@ UI будет доступен на `http://localhost:13000`, API — на `http
 Compose-проект называется `bond-strategy-planner-deepseek2`, контейнеры — `bsp2-*`, поэтому он
 не конфликтует с другими compose-проектами на той же машине.
 
-Для ручной проверки AI без внешней модели в `.env` можно включить детерминированный провайдер:
+Для реальной модели (OpenAI-совместимый LM Studio / vLLM / Ollama) задайте в `.env`:
 
 ```dotenv
 APP_LLM_ENABLED=true
-APP_LLM_PROVIDER=STUB
-APP_LLM_BASE_URL=http://stub/v1
-APP_LLM_MODEL=stub-model
+APP_LLM_PROVIDER=LMSTUDIO
+APP_LLM_BASE_URL=http://host.robotcomp:1234/v1
+APP_LLM_API_KEY=<ваш API key>
+APP_LLM_MODEL=qwen3-14b
+APP_LLM_TIMEOUT=PT120S
+APP_LLM_MAX_TOKENS=2048
+APP_LLM_DISABLE_THINKING=true
 ```
+
+`APP_LLM_DISABLE_THINKING=true` добавляет `/no_think` для Qwen3: без этого reasoning-модель
+может израсходовать весь лимит токенов на `reasoning_content` и вернуть пустой JSON.
+Провайдер автоматически откатывается на запрос без `response_format`, если сервер его не
+поддерживает. `APP_LLM_PROVIDER=STUB` — детерминированный режим для тестов без модели.
 
 Демо-доступ: `admin@local.dev` / `admin12345` (ADMIN). Демо-данные создаются при первом старте
 (`APP_SEED_DEMO=true`); полную синхронизацию с MOEX можно запустить в админке
@@ -155,18 +164,43 @@ APP_LLM_MODEL=stub-model
 
 Выключен по умолчанию (`APP_LLM_ENABLED=false`) — AI-эндпоинты отвечают `503 LLM_UNAVAILABLE`, ядро
 работает полностью. При включении обязательны `APP_LLM_BASE_URL` и `APP_LLM_MODEL` (иначе старт
-падает с `LLM_CONFIG_INVALID`).
+падает с `LLM_CONFIG_INVALID`). Поддерживается любой OpenAI-совместимый endpoint: LM Studio, vLLM,
+Ollama (`/v1`), OpenRouter, YandexGPT.
 
 ```env
 APP_LLM_ENABLED=true
 APP_LLM_PROVIDER=LMSTUDIO
-APP_LLM_BASE_URL=http://lmstudio.local:1234/v1
-APP_LLM_MODEL=qwen3.5-14b
+APP_LLM_BASE_URL=http://host.robotcomp:1234/v1
+APP_LLM_API_KEY=sk-...
+APP_LLM_MODEL=qwen3-14b
+APP_LLM_TIMEOUT=PT120S
+APP_LLM_MAX_TOKENS=2048
+APP_LLM_DISABLE_THINKING=true
 ```
 
-`APP_LLM_PROVIDER=STUB` — детерминированный провайдер для тестов и демонстрации без внешней модели.
-Ответы проходят JSON Schema и grounding-валидацию (выдуманные тикеры удаляются), сервер добавляет
-неудаляемый дисклеймер. Все запросы сохраняются в `llm_analyses` (токены, стоимость, latency).
+Проверка провайдера и полного цикла:
+
+```bash
+curl http://localhost:18080/api/v1/ai/health
+# {"enabled":true,"provider":"LMSTUDIO","model":"qwen3-14b","healthy":true,...}
+
+# с токеном администратора
+curl -X POST http://localhost:18080/api/v1/ai/consent -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:18080/api/v1/ai/portfolio-reviews \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"portfolioId":1}'
+# 202 {"analysisId":...}; далее GET /api/v1/ai/analyses/{id}
+```
+
+`APP_LLM_DISABLE_THINKING=true` добавляет `/no_think` для Qwen3 (reasoning-модель иначе может
+израсходовать лимит токенов на `reasoning_content` и вернуть пустой `content`). Если сервер не
+поддерживает `response_format: json_object`, провайдер повторяет запрос без него. `STUB` —
+детерминированный провайдер для тестов и CI.
+
+Ответы проходят JSON Schema и grounding-валидацию: выдуманные тикеры и ссылки удаляются,
+строковые `risks`/`nextActions` нормализуются, при отсутствии источников подставляются refs из
+контекста. Сервер добавляет неудаляемый дисклеймер. Все запросы сохраняются в `llm_analyses`
+(токены, стоимость, latency), повторный запрос идёт через кэш.
 
 ## API
 
