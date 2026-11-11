@@ -27,7 +27,7 @@ const STATE_FILE = path.join(STATE_DIR, "manifest.json");
 const EXCLUDED_DIRS = new Set([
   ".git", ".github-sync", "node_modules", "target", "dist", "build", "out",
   "coverage", ".vite", ".idea", ".vscode", "playwright-report", "test-results",
-  "data", "logs", ".mvn", ".m2repo", ".gradle",
+  "data", "logs", ".mvn", ".m2repo", ".gradle", ".npm-cache", ".tmp", ".playwright",
 ]);
 const EXCLUDED_FILES = new Set([".env", ".env.local", "thumbs.db", ".ds_store"]);
 const EXCLUDED_EXT = /\.(log|tmp|db|mv\.db|trace\.db|jar|class|zip|7z)$/i;
