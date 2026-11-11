@@ -1,6 +1,7 @@
 package com.bondplanner.config;
 
 import com.bondplanner.security.JwtAuthenticationFilter;
+import com.bondplanner.security.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final AppProperties properties;
 
     @Bean
@@ -64,7 +66,8 @@ public class SecurityConfig {
                                      "status":403,"code":"FORBIDDEN","detail":"Недостаточно прав"}
                                     """);
                         }))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 
